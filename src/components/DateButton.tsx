@@ -1,6 +1,6 @@
 import React from 'react';
 import {DateTimePickerAndroid} from '@react-native-community/datetimepicker';
-import {Button} from 'react-native-paper';
+import {Button} from './controls';
 import {dateKey, fromDateKey, shortDate} from '../data/dates';
 
 export function chooseDate(value: string, onChange: (value: string) => void, maximumDate?: Date) {

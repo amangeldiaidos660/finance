@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {View} from 'react-native';
-import {Button, Chip, Text} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {Button, Chip} from '../components/controls';
 import {useFinance} from '../data/FinanceProvider';
 import {exportHistory, type ExportFormat} from '../data/export';
 import {isFlow} from '../data/statistics';
@@ -25,9 +26,9 @@ export function HistoryScreen() {
     <Sheet visible={open} onClose={() => { if (!action.busy) { setOpen(false); } }} title="Экспорт всей истории">
       <Text style={ui.muted}>В файл попадут все операции за всё время, включая переводы, комиссии, начальные остатки и историю удалённых счетов и категорий. Фильтр на экране не ограничивает экспорт. Для получения полной истории нужен интернет.</Text>
       <ErrorNotice text={action.error}/>
-      <Button mode="outlined" icon="file-pdf-box" disabled={action.busy} onPress={() => download('pdf')}>PDF</Button>
-      <Button mode="outlined" icon="file-excel-outline" disabled={action.busy} onPress={() => download('xlsx')}>Excel (.xlsx)</Button>
-      <Button mode="outlined" icon="file-delimited-outline" disabled={action.busy} onPress={() => download('csv')}>CSV</Button>
+      <Button mode="outlined" icon="export-variant" disabled={action.busy} onPress={() => download('pdf')}>PDF</Button>
+      <Button mode="outlined" icon="export-variant" disabled={action.busy} onPress={() => download('xlsx')}>Excel (.xlsx)</Button>
+      <Button mode="outlined" icon="export-variant" disabled={action.busy} onPress={() => download('csv')}>CSV</Button>
       {action.busy && <Button loading disabled>Подготовка файла…</Button>}
     </Sheet>
   </Page>;

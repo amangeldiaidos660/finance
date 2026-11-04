@@ -1,9 +1,11 @@
 import React from 'react';
 import {View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {DefaultTheme, NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {Icon, Text, Button} from 'react-native-paper';
+import {Icon, Text} from 'react-native-paper';
+import {Button} from '../components/controls';
 import type {BottomTabParamList, RootStackParamList} from './types';
 import {useFinance} from '../data/FinanceProvider';
 import {logout} from '../data/auth';
@@ -28,10 +30,11 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigationTheme = {...DefaultTheme, colors: {...DefaultTheme.colors, primary: colors.primary, background: colors.background, card: colors.background, text: colors.text, border: colors.border}};
 
 function BottomTabs() {
-  return <Bottom.Navigator initialRouteName="Accounts" screenOptions={{headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarStyle: {backgroundColor: colors.surface, borderTopWidth: 0, elevation: 0}, tabBarLabelStyle: {fontSize: 12}, tabBarHideOnKeyboard: true}}>
-    <Bottom.Screen name="Accounts" component={AccountsScreen} options={{title: 'Счета', tabBarIcon: ({color, size}) => <Icon source="wallet-outline" color={color} size={size}/>}}/>
-    <Bottom.Screen name="Expenses" component={ExpensesScreen} options={{title: 'Расходы', tabBarIcon: ({color, size}) => <Icon source="arrow-top-right" color={color} size={size}/>}}/>
-    <Bottom.Screen name="Income" component={IncomeScreen} options={{title: 'Доходы', tabBarIcon: ({color, size}) => <Icon source="arrow-bottom-left" color={color} size={size}/>}}/>
+  const insets = useSafeAreaInsets();
+  return <Bottom.Navigator initialRouteName="Accounts" screenOptions={{headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarStyle: [ui.tabBar, {height: 66 + insets.bottom, paddingBottom: Math.max(insets.bottom, 8)}], tabBarLabelStyle: {fontSize: 12, fontWeight: '600', marginBottom: 4}, tabBarHideOnKeyboard: true}}>
+    <Bottom.Screen name="Accounts" component={AccountsScreen} options={{title: 'Счета', tabBarIcon: ({size}) => <Icon source="wallet-outline" color={colors.primary} size={size}/>}}/>
+    <Bottom.Screen name="Expenses" component={ExpensesScreen} options={{title: 'Расходы', tabBarIcon: ({size}) => <Icon source="arrow-top-right" color={colors.primary} size={size}/>}}/>
+    <Bottom.Screen name="Income" component={IncomeScreen} options={{title: 'Доходы', tabBarIcon: ({size}) => <Icon source="arrow-bottom-left" color={colors.primary} size={size}/>}}/>
   </Bottom.Navigator>;
 }
 
@@ -45,13 +48,13 @@ export function AppNavigation() {
   return <View style={ui.fill}>
     <NavigationContainer key={user.uid} theme={navigationTheme}>
       <Stack.Navigator screenOptions={({route}) => ({contentStyle: {backgroundColor: colors.background}, header: ({back, options}) => <AppHeader title={options.title ?? route.name} back={!!back}/>})}>
-        <Stack.Screen name="Main" component={BottomTabs} options={{title: 'Финансы'}}/>
+        <Stack.Screen name="Main" component={BottomTabs} options={{title: 'Финансы', headerShown: false}}/>
         <Stack.Screen name="Menu" component={MenuScreen} options={{title: 'Меню'}}/>
         <Stack.Screen name="AccountForm" component={AccountFormScreen} options={({route}) => ({title: route.params?.id ? 'Настройки счёта' : 'Новый счёт'})}/>
         <Stack.Screen name="Operation" component={OperationScreen} options={{headerShown: false, presentation: 'fullScreenModal'}}/>
-        <Stack.Screen name="Categories" component={CategoriesScreen} options={{title: 'Категории'}}/>
+        <Stack.Screen name="Categories" component={CategoriesScreen} options={{title: 'Категории', headerShown: false}}/>
         <Stack.Screen name="Limits" component={LimitsScreen} options={{title: 'Лимиты'}}/>
-        <Stack.Screen name="Obligations" component={ObligationsScreen} options={{title: 'Обязательства'}}/>
+        <Stack.Screen name="Obligations" component={ObligationsScreen} options={{title: 'Обязательства', headerShown: false}}/>
         <Stack.Screen name="Charts" component={ChartsScreen} options={({route}) => ({title: route.params.mode === 'trend' ? 'Динамика' : 'Диаграмма'})}/>
         <Stack.Screen name="History" component={HistoryScreen} options={{title: 'История'}}/>
         <Stack.Screen name="Settings" component={SettingsScreen} options={{title: 'Настройки'}}/>

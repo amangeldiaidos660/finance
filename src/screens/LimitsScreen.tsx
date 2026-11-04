@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {View} from 'react-native';
-import {Button, Text} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {Button} from '../components/controls';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/types';
 import type {Category} from '../data/types';

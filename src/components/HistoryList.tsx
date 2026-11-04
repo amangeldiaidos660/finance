@@ -21,9 +21,9 @@ export function HistoryList({operations, entryFilter}: {operations: Operation[];
     {entries.map((entry, index) => {
       const incoming = entry.kind === 'income' || entry.kind === 'transfer-in';
       const negative = ['expense', 'transfer-out', 'fee', 'repayment', 'debt-reduction'].includes(entry.kind);
-      return <View key={entry.id} style={{gap: 5}}>
+      return <View key={entry.id} style={{gap: 10}}>
         {index > 0 && <Divider style={ui.divider}/>}
-        <View style={ui.between}><Text style={[ui.label, ui.grow]}>{entry.obligationName || entry.categoryName || entryLabels[entry.kind]}</Text><Text style={[ui.amount, {fontSize: 15, color: incoming ? colors.green : negative ? colors.red : colors.secondary}]}>{incoming ? '+' : negative ? '−' : ''}{money(entry.amount)}</Text></View>
+        <View style={ui.between}><Text style={[ui.label, ui.grow]}>{entry.obligationName || entry.categoryName || entryLabels[entry.kind]}</Text><Text style={[ui.amount, {fontSize: 15, fontWeight: '400', color: incoming ? colors.green : negative ? colors.red : colors.secondary}]}>{incoming ? '+' : negative ? '−' : ''}{money(entry.amount)}</Text></View>
         <Text style={ui.muted}>{entry.accountName} · {entryLabels[entry.kind]}</Text>
       </View>;
     })}

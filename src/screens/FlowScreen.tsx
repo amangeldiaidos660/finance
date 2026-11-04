@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {View} from 'react-native';
-import {Button, FAB, IconButton, ProgressBar, Switch, Text} from 'react-native-paper';
+import {ProgressBar, Switch, Text} from 'react-native-paper';
+import {Button, IconButton} from '../components/controls';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/types';
@@ -10,7 +11,7 @@ import {period} from '../data/dates';
 import {categoryLimit, flowTotal, inRange, isFlow} from '../data/statistics';
 import {money} from '../data/money';
 import {FEE_CATEGORY} from '../data/constants';
-import {Card, Page} from '../components/common';
+import {AppHeader, Card, Page} from '../components/common';
 import {PeriodFilter} from '../components/PeriodFilter';
 import {HistoryList} from '../components/HistoryList';
 import {colors, ui} from '../theme/theme';
@@ -28,9 +29,10 @@ export function FlowScreen({flow}: {flow: Flow}) {
   const total = flowTotal(operations, flow, range);
 
   return <View style={ui.fill}>
+    <AppHeader title="Финансы" addLabel={flow === 'income' ? 'Добавить доход' : 'Добавить расход'} onAdd={() => navigation.navigate('Operation', {flow})}/>
     <Page>
       <PeriodFilter value={range} onChange={setRange}/>
-      <View style={ui.between}><Text style={ui.section}>{flow === 'expense' ? 'Расходы' : 'Доходы'}</Text><Text style={ui.total}>Итого: {money(total)}</Text></View>
+      <View style={ui.between}><Text style={[ui.section, {fontWeight: '400'}]}>{flow === 'expense' ? 'Расходы' : 'Доходы'}</Text><Text style={ui.total}>Итого: {money(total)}</Text></View>
       <Card>
         {flow === 'expense' && <View style={ui.between}>
           <View style={ui.row}><Text style={ui.muted}>Показать лимит</Text><Switch value={showLimit} onValueChange={setShowLimit}/></View>
@@ -41,16 +43,15 @@ export function FlowScreen({flow}: {flow: Flow}) {
           const limit = categoryLimit(category, obligations);
           const current = flowTotal(operations, 'expense', period('month'), category.id);
           const exceeded = limit !== null && current > limit;
-          return <View key={category.id} style={{gap: 6}}>
+          return <View key={category.id} style={ui.categoryRow}>
             <View style={ui.row}>
-              <Text style={[ui.label, {flexShrink: 1}]}>{category.name}{!category.active ? ' · удалена' : ''}</Text>
-              <View style={ui.dotted}/>
+              <Text style={[ui.label, ui.grow]}>{category.name}{!category.active ? ' · удалена' : ''}</Text>
               <Text style={{fontSize: 15, color: value ? colors.secondary : colors.muted}}>{money(value)}</Text>
-              {category.active && category.id !== FEE_CATEGORY && <IconButton icon="plus" mode="outlined" size={18} iconColor={colors.primary} style={{borderRadius: 9, margin: 0}} accessibilityLabel={`Добавить: ${category.name}`} onPress={() => navigation.navigate('Operation', {flow, categoryId: category.id})}/>}
+              {category.active && category.id !== FEE_CATEGORY && <IconButton icon="plus" mode="outlined" size={18} iconColor={colors.primary} style={ui.iconButton} accessibilityLabel={`Добавить: ${category.name}`} onPress={() => navigation.navigate('Operation', {flow, categoryId: category.id})}/>}
             </View>
             {flow === 'expense' && showLimit && <>
               <Text style={[ui.muted, exceeded && {color: colors.red}]}>{limit === null ? 'Лимит не установлен' : `Этот месяц: ${money(current)} / ${money(limit)}${exceeded ? ' · превышение' : ''}`}</Text>
-              {limit !== null && <ProgressBar progress={limit > 0 ? Math.min(current / limit, 1) : current > 0 ? 1 : 0} color={exceeded ? colors.red : colors.primary} style={{height: 4, borderRadius: 4}}/>}
+              {limit !== null && <ProgressBar progress={limit > 0 ? Math.min(current / limit, 1) : current > 0 ? 1 : 0} color={exceeded ? colors.red : colors.primary} style={{height: 5, borderRadius: 4, backgroundColor: colors.track}}/>}
             </>}
           </View>;
         })}
@@ -60,7 +61,6 @@ export function FlowScreen({flow}: {flow: Flow}) {
       <HistoryList operations={history.slice(0, count)} entryFilter={entry => isFlow(entry, flow)}/>
       {history.length > count && <Button onPress={() => setCount(value => value + 30)}>Показать ещё</Button>}
     </Page>
-    <FAB icon="plus" color="#FFFFFF" style={ui.fab} accessibilityLabel={flow === 'income' ? 'Добавить доход' : 'Добавить расход'} onPress={() => navigation.navigate('Operation', {flow})}/>
   </View>;
 }
 

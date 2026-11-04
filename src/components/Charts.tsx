@@ -14,9 +14,9 @@ export function DonutChart({items, totalLabel = 'Итого'}: {items: ChartSlic
   const circumference = 2 * Math.PI * radius;
   const total = items.reduce((sum, item) => sum + item.value, 0);
   let progress = 0;
-  return <View style={{alignItems: 'center', paddingVertical: 20}}>
+  return <View style={{alignItems: 'center', paddingVertical: 28}}>
     <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} accessibilityLabel={total ? `${totalLabel}: ${money(total)}` : 'Нет данных для диаграммы'}>
-      <Circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E3E7EB" strokeWidth={20}/>
+      <Circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors.track} strokeWidth={20}/>
       {items.filter(item => item.value > 0).map(item => {
         const fraction = item.value / total;
         const offset = -progress * circumference;
@@ -59,10 +59,10 @@ export function MonthlyChart({values, second, color = colors.primary}: {values: 
   return <Svg width={width} height={height} accessibilityLabel={second ? 'Помесячное сравнение расходов и доходов' : 'Динамика по месяцам'}>
     {[0, 1, 2, 3, 4].map(tick => {
       const y = top + plotHeight * tick / 4;
-      return <React.Fragment key={tick}><Line x1={left} x2={width - 5} y1={y} y2={y} stroke="#D4D6DC" strokeDasharray="4 6"/><SvgText x={left - 6} y={y + 4} textAnchor="end" fontSize={10} fill={colors.muted}>{axisText(upper * (1 - tick / 4))}</SvgText></React.Fragment>;
+      return <React.Fragment key={tick}><Line x1={left} x2={width - 5} y1={y} y2={y} stroke={colors.border} strokeDasharray="4 6"/><SvgText x={left - 6} y={y + 4} textAnchor="end" fontSize={10} fill={colors.muted}>{axisText(upper * (1 - tick / 4))}</SvgText></React.Fragment>;
     })}
     {second ? values.map((value, index) => <React.Fragment key={index}>
-      <Rect x={left + slot * index + slot * 0.1} y={pointY(value)} width={slot * 0.34} height={plotHeight * value / upper} rx={2} fill="#EEA329"/>
+      <Rect x={left + slot * index + slot * 0.1} y={pointY(value)} width={slot * 0.34} height={plotHeight * value / upper} rx={2} fill={colors.red}/>
       <Rect x={left + slot * index + slot * 0.53} y={pointY(second[index] ?? 0)} width={slot * 0.34} height={plotHeight * (second[index] ?? 0) / upper} rx={2} fill={colors.green}/>
     </React.Fragment>) : <><Path d={path} fill="none" stroke={color} strokeWidth={2.5}/>{values.map((value, index) => <Circle key={index} cx={left + slot * (index + 0.5)} cy={pointY(value)} r={3} fill={color}/>)}</>}
     {monthNames.map((label, index) => <SvgText key={label} x={left + slot * (index + 0.5)} y={height - 14} textAnchor="middle" fontSize={9} fill={colors.muted}>{label}</SvgText>)}

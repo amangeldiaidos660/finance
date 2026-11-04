@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {ScrollView, View} from 'react-native';
-import {Button, Chip, Text} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {Button, Chip} from './controls';
 import {dateKey, period, periodLabel} from '../data/dates';
 import type {DateRange, PeriodKind} from '../data/types';
 import {Sheet, ErrorNotice} from './common';

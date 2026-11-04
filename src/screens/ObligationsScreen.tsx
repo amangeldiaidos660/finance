@@ -1,6 +1,7 @@
 import React, {useRef, useState} from 'react';
 import {View} from 'react-native';
-import {Button, FAB, IconButton, SegmentedButtons, Text, TextInput} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {Button, IconButton, SegmentedButtons, TextInput} from '../components/controls';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/types';
 import type {Flow, Obligation} from '../data/types';
@@ -9,7 +10,7 @@ import {newId} from '../data/firebase';
 import {archiveObligation, saveObligation} from '../data/repository';
 import {money, moneyInput, parseMoney} from '../data/money';
 import {useAction} from '../data/useAction';
-import {Card, EmptyState, ErrorNotice, MoneyField, Page, Sheet, Tabs} from '../components/common';
+import {AppHeader, Card, EmptyState, ErrorNotice, MoneyField, Page, Sheet, Tabs} from '../components/common';
 import {colors, ui} from '../theme/theme';
 
 export function ObligationsScreen({navigation}: NativeStackScreenProps<RootStackParamList, 'Obligations'>) {
@@ -33,6 +34,7 @@ export function ObligationsScreen({navigation}: NativeStackScreenProps<RootStack
     setFormFlow(item?.flow ?? flow); action.clearError(); setOpen(true);
   };
   return <View style={ui.fill}>
+    <AppHeader title="Обязательства" back addLabel="Добавить обязательство" onAdd={() => begin(null)}/>
     <Page>
       <Tabs value={flow} onChange={setFlow} items={[{value: 'expense', label: 'Расходы'}, {value: 'income', label: 'Доходы'}]}/>
       <Text style={ui.muted}>Каждое обязательство выполняется один раз в месяц. В следующем месяце оно снова доступно. Дата берётся из записанной операции.</Text>
@@ -45,12 +47,11 @@ export function ObligationsScreen({navigation}: NativeStackScreenProps<RootStack
         <Text style={ui.muted}>Обязательства / {item.name} · {month}</Text>
       </Card>)}
     </Page>
-    <FAB icon="plus" color="#FFFFFF" style={ui.fab} accessibilityLabel="Добавить обязательство" onPress={() => begin(null)}/>
     <Sheet title={deleting ? 'Удалить обязательство?' : editing ? 'Изменить обязательство' : 'Новое обязательство'} visible={open} onClose={() => { if (!action.busy) { setOpen(false); } }}>
       {deleting ? <Text style={ui.label}>«{editing?.name}» больше не будет появляться в следующих месяцах. Сохранённые операции останутся в истории. Автоматический лимит будет пересчитан.</Text> : <>
-        <TextInput mode="outlined" label="Название подкатегории" placeholder="Например, аренда" value={name} onChangeText={setName} maxLength={80} disabled={action.busy} style={ui.field}/>
+        <TextInput mode="flat" label="Название подкатегории" placeholder="Например, аренда" value={name} onChangeText={setName} maxLength={80} disabled={action.busy} style={ui.field}/>
         <MoneyField value={amount} onChange={setAmount} disabled={action.busy}/>
-        <TextInput mode="outlined" label="Описание" value={description} onChangeText={setDescription} maxLength={300} disabled={action.busy} style={ui.field}/>
+        <TextInput mode="flat" label="Описание" value={description} onChangeText={setDescription} maxLength={300} disabled={action.busy} style={ui.field}/>
         <SegmentedButtons value={formFlow} onValueChange={value => setFormFlow(value as Flow)} buttons={[{value: 'expense', label: 'Расход', disabled: !!editing || action.busy}, {value: 'income', label: 'Доход', disabled: !!editing || action.busy}]}/>
       </>}
       <ErrorNotice text={action.error}/>

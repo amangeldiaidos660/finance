@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
-import {Button, Text} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {Button} from '../components/controls';
 import {useFinance} from '../data/FinanceProvider';
 import {setDefaultAccount} from '../data/repository';
 import {logout} from '../data/auth';

@@ -1,6 +1,7 @@
 import React, {useRef, useState} from 'react';
 import {ScrollView, StyleSheet, View} from 'react-native';
-import {Appbar, Button, Chip, Text, TextInput} from 'react-native-paper';
+import {Appbar, Text} from 'react-native-paper';
+import {Button, Chip, TextInput} from '../components/controls';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/types';
@@ -69,7 +70,7 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
   });
 
   return <SafeAreaView style={ui.fill} edges={['top', 'bottom']}>
-    <Appbar style={{backgroundColor: colors.background}}><Appbar.Action icon="close" disabled={action.busy} onPress={() => navigation.goBack()} accessibilityLabel="Закрыть"/><Appbar.Content title={initial?.kind === 'repayment' ? 'Погашение кредита' : flow === 'income' ? 'Пополнение' : 'Расход'} titleStyle={{fontSize: 18}}/></Appbar>
+    <Appbar style={ui.header}><Appbar.Action icon="close" color={colors.primary} disabled={action.busy} onPress={() => navigation.goBack()} accessibilityLabel="Закрыть"/><Appbar.Content title={initial?.kind === 'repayment' ? 'Погашение кредита' : flow === 'income' ? 'Пополнение' : 'Расход'} titleStyle={ui.headerTitle}/></Appbar>
     <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
       <Text style={styles.expression} accessibilityLiveRegion="polite">{expression || '0,00'}<Text style={styles.currency}> ₸</Text></Text>
       {initial?.kind !== 'repayment' && <View style={ui.wrap}>
@@ -95,15 +96,15 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
         <Text style={ui.muted}>Комиссия: {money(source?.fee ?? 0)}. Списывается дополнительно со счёта отправителя.</Text>
         {target?.kind === 'credit' && <Text style={ui.muted}>Остаток долга: {money(target.balance)}. Сумма платежа уменьшит долг.</Text>}
       </>}
-      <TextInput mode="outlined" placeholder="Комментарий" accessibilityLabel="Комментарий к операции" value={comment} onChangeText={setComment} maxLength={300} disabled={action.busy} style={ui.field}/>
+      <TextInput mode="flat" placeholder="Комментарий" accessibilityLabel="Комментарий к операции" value={comment} onChangeText={setComment} maxLength={300} disabled={action.busy} style={ui.field}/>
     </ScrollView>
     <View style={styles.keyboard}>
       <ErrorNotice text={action.error}/>
       {keypad.map((row, index) => <View style={styles.keyRow} key={index}>
-        {row.map(value => <Button key={value} mode="contained" buttonColor="#FFFFFF" textColor={colors.secondary} disabled={action.busy} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={() => key(value)} onLongPress={value === '⌫' ? () => setExpression('') : undefined} accessibilityLabel={value === '⌫' ? 'Удалить цифру; удерживайте, чтобы очистить' : value}>{value}</Button>)}
-        {index === 1 && <Button mode="contained" disabled={action.busy} buttonColor="#979AA8" style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.sideText} onPress={() => chooseDate(date, setDate, new Date())}>{shortDate(date)}</Button>}
-        {index === 2 && <View style={[styles.key, styles.accountKey]}><AccountPicker accounts={sourceAccounts} value={accountId} onChange={setAccountId} label="Счёт" disabled={action.busy}/></View>}
-        {index === 3 && <Button mode="contained" buttonColor="#FFFFFF" textColor={colors.primary} disabled={action.busy} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={() => action.run(async () => setExpression(moneyInput(calculate(expression))))}>=</Button>}
+        {row.map(value => <Button key={value} mode="contained" buttonColor={colors.surface} textColor={colors.secondary} disabled={action.busy} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={() => key(value)} onLongPress={value === '⌫' ? () => setExpression('') : undefined} accessibilityLabel={value === '⌫' ? 'Удалить цифру; удерживайте, чтобы очистить' : value}>{value}</Button>)}
+        {index === 1 && <Button mode="contained" disabled={action.busy} buttonColor={colors.track} textColor={colors.text} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.sideText} onPress={() => chooseDate(date, setDate, new Date())}>{shortDate(date)}</Button>}
+        {index === 2 && <View style={[styles.key, styles.accountKey]}><AccountPicker accounts={sourceAccounts} value={accountId} onChange={setAccountId} label="Счёт" compact disabled={action.busy}/></View>}
+        {index === 3 && <Button mode="contained" buttonColor={colors.surface} textColor={colors.primary} disabled={action.busy} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={() => action.run(async () => setExpression(moneyInput(calculate(expression))))}>=</Button>}
         {index === 4 && <Button mode="contained" disabled={action.busy} loading={action.busy} buttonColor={colors.primary} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={save} accessibilityLabel="Сохранить операцию">✓</Button>}
       </View>)}
     </View>
@@ -111,15 +112,15 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
 }
 
 const styles = StyleSheet.create({
-  form: {padding: 16, gap: 16, paddingBottom: 18},
-  expression: {fontSize: 38, color: colors.text, fontWeight: '700', textAlign: 'center', paddingVertical: 12, fontVariant: ['tabular-nums']},
-  currency: {fontSize: 20, color: colors.muted},
+  form: {padding: 16, gap: 20, paddingBottom: 20},
+  expression: {fontSize: 44, color: colors.text, fontWeight: '700', textAlign: 'center', paddingVertical: 22, fontVariant: ['tabular-nums']},
+  currency: {fontSize: 24, color: colors.muted},
   chips: {flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8},
-  keyboard: {padding: 6, gap: 5},
-  keyRow: {flexDirection: 'row', gap: 5},
-  key: {flex: 1, borderRadius: 10, minWidth: 0},
-  keyContent: {height: 48},
-  keyText: {fontSize: 25, lineHeight: 30, marginVertical: 6, marginHorizontal: 0, fontWeight: '400'},
+  keyboard: {padding: 8, gap: 6, backgroundColor: colors.background},
+  keyRow: {flexDirection: 'row', gap: 6},
+  key: {flex: 1, borderRadius: 15, minWidth: 0, elevation: 0, shadowOpacity: 0},
+  keyContent: {height: 48, minHeight: 48},
+  keyText: {fontSize: 25, lineHeight: 30, marginVertical: 6, marginHorizontal: 0, fontWeight: '600'},
   sideText: {fontSize: 11, marginHorizontal: 0},
-  accountKey: {justifyContent: 'center', backgroundColor: '#FFFFFF'},
+  accountKey: {justifyContent: 'center', backgroundColor: colors.surface},
 });

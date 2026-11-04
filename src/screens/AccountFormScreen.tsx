@@ -1,5 +1,6 @@
 import React, {useRef, useState} from 'react';
-import {Button, SegmentedButtons, Text, TextInput} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {Button, SegmentedButtons, TextInput} from '../components/controls';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/types';
 import {useFinance} from '../data/FinanceProvider';
@@ -34,13 +35,13 @@ export function AccountFormScreen({route, navigation}: NativeStackScreenProps<Ro
   return <Page>
     {!existing && <SegmentedButtons value={kind} onValueChange={value => setKind(value as AccountKind)} buttons={[{value: 'bank', label: 'Счёт', disabled: action.busy}, {value: 'deposit', label: 'Депозит', disabled: action.busy}, {value: 'credit', label: 'Кредит', disabled: action.busy}]}/>}
     <Card>
-      {kind === 'credit' ? <Text style={ui.heading}>{existing?.name ?? `Кредит ${settings.nextCreditNumber}`}</Text> : <TextInput mode="outlined" label="Название счёта" value={name} onChangeText={setName} maxLength={80} disabled={action.busy} style={ui.field}/>}
+      {kind === 'credit' ? <Text style={ui.heading}>{existing?.name ?? `Кредит ${settings.nextCreditNumber}`}</Text> : <TextInput mode="flat" label="Название счёта" value={name} onChangeText={setName} maxLength={80} disabled={action.busy} style={ui.field}/>}
       {!existing && <MoneyField label={kind === 'credit' ? 'Оставшийся долг, ₸' : 'Начальная сумма, ₸'} value={balance} onChange={setBalance} disabled={action.busy}/>}
       {existing && <Text style={ui.muted}>Остаток изменяется только операциями. Начальную сумму после создания редактировать нельзя.</Text>}
       {kind !== 'credit' && <><MoneyField label="Комиссия за исходящий перевод, ₸" value={fee} onChange={setFee} disabled={action.busy}/><Text style={ui.muted}>0 — без комиссии. Комиссия списывается дополнительно к сумме перевода.</Text></>}
       {kind === 'credit' && <>
         <MoneyField label="Ежемесячный платёж, ₸" value={monthly} onChange={setMonthly} disabled={action.busy}/>
-        <TextInput mode="outlined" label="Число платежа (1–31)" keyboardType="number-pad" value={day} onChangeText={setDay} maxLength={2} disabled={action.busy} style={ui.field}/>
+        <TextInput mode="flat" label="Число платежа (1–31)" keyboardType="number-pad" value={day} onChangeText={setDay} maxLength={2} disabled={action.busy} style={ui.field}/>
         <Text style={ui.muted}>Если такого числа в месяце нет, показываем последний день месяца. Автоматического списания нет.</Text>
         <AccountPicker accounts={accounts.filter(account => account.active && account.kind === 'bank')} value={source} onChange={setSource} label="Счёт погашения" disabled={action.busy}/>
         <Text style={ui.muted}>При каждом погашении можно выбрать другой счёт. Проценты отдельно не рассчитываются.</Text>

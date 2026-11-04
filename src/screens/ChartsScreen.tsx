@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {ScrollView, View} from 'react-native';
-import {IconButton, Chip, Text} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {IconButton, Chip} from '../components/controls';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/types';
 import type {DateRange, Flow} from '../data/types';
@@ -45,7 +46,7 @@ export function ChartsScreen({route}: NativeStackScreenProps<RootStackParamList,
       </ScrollView>
       <Card><Text style={ui.label}>{categoryItems.find(category => category.id === categoryId)?.name ?? (flow === 'income' ? 'Все доходы' : 'Все расходы')}</Text><MonthlyChart values={monthly(flow, categoryId ?? undefined)} color={flow === 'income' ? colors.green : colors.primary}/><Text style={ui.muted}>Суммы в тенге · к = тысячи, м = миллионы</Text></Card>
       <Text style={ui.section}>Доходы и расходы за год</Text>
-      <View style={ui.row}><Chip icon="circle" textStyle={{color: '#D88C14'}}>Расходы</Chip><Chip icon="circle" textStyle={{color: colors.green}}>Доходы</Chip></View>
+      <View style={ui.row}><Chip icon="circle" textStyle={{color: colors.red}}>Расходы</Chip><Chip icon="circle" textStyle={{color: colors.green}}>Доходы</Chip></View>
       <Card><MonthlyChart values={monthly('expense')} second={monthly('income')}/><Text style={ui.muted}>Сравнение всех категорий. Переводы и погашение основного долга в доходы и расходы не входят.</Text></Card>
     </>}
   </Page>;
