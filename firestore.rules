@@ -1,0 +1,206 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function amount(value) {
+      return value is int && value >= 0 && value <= 9000000000000;
+    }
+    function title(value) {
+      return value is string && value.size() > 0 && value.size() <= 80;
+    }
+    function accountPath(uid, id) {
+      return /databases/$(database)/documents/users/$(uid)/accounts/$(id);
+    }
+    function operationPath(uid, id) {
+      return /databases/$(database)/documents/users/$(uid)/operations/$(id);
+    }
+    function categoryPath(uid, id) {
+      return /databases/$(database)/documents/users/$(uid)/categories/$(id);
+    }
+    function monthOf(date) {
+      return date.split('-')[0] + '-' + date.split('-')[1];
+    }
+    function delta(entry, id) {
+      return entry.accountId != id ? 0 : entry.amount * (entry.kind in ['expense', 'transfer-out', 'fee', 'repayment', 'debt-reduction'] ? -1 : 1);
+    }
+    function operationDelta(op, id) {
+      return delta(op.entries[0], id)
+        + (op.entries.size() > 1 ? delta(op.entries[1], id) : 0)
+        + (op.entries.size() > 2 ? delta(op.entries[2], id) : 0);
+    }
+    function postedBalance(uid, id, next, previous) {
+      let op = getAfter(operationPath(uid, next.lastOperationId)).data;
+      return next.lastOperationId != previous.lastOperationId
+        && !exists(operationPath(uid, next.lastOperationId))
+        && op.kind != 'opening'
+        && next.balance == previous.balance + operationDelta(op, id);
+    }
+    function validAccount(uid, id, data) {
+      return data.keys().hasAll(['id', 'name', 'kind', 'balance', 'openingBalance', 'fee', 'monthlyPayment', 'paymentDay', 'paymentAccountId', 'linkedCreditIds', 'lastOperationId', 'active', 'createdAt'])
+        && data.keys().hasOnly(['id', 'name', 'kind', 'balance', 'openingBalance', 'fee', 'monthlyPayment', 'paymentDay', 'paymentAccountId', 'linkedCreditIds', 'lastOperationId', 'active', 'createdAt'])
+        && data.id == id && title(data.name)
+        && data.kind in ['bank', 'deposit', 'credit']
+        && amount(data.balance) && amount(data.openingBalance) && amount(data.fee) && amount(data.monthlyPayment)
+        && data.paymentDay is int && data.paymentDay >= 1 && data.paymentDay <= 31
+        && data.linkedCreditIds is list && data.lastOperationId is string
+        && data.active is bool && data.createdAt is int
+        && (data.kind != 'credit' ? data.paymentAccountId == null :
+          data.fee == 0 && data.monthlyPayment > 0 && data.paymentAccountId is string
+          && getAfter(accountPath(uid, data.paymentAccountId)).data.kind == 'bank'
+          && getAfter(accountPath(uid, data.paymentAccountId)).data.active == true);
+    }
+    function validCategory(id, data) {
+      return data.keys().hasAll(['id', 'name', 'flow', 'color', 'limit', 'system', 'active', 'order'])
+        && data.keys().hasOnly(['id', 'name', 'flow', 'color', 'limit', 'system', 'active', 'order'])
+        && data.id == id && title(data.name) && data.flow in ['income', 'expense']
+        && data.color is string && data.color.matches('#[0-9A-Fa-f]{6}')
+        && (data.limit == null || amount(data.limit))
+        && data.system is bool && data.active is bool && data.order is int
+        && (id == 'transfer-fees' ? data.system && data.flow == 'expense' && data.name == 'Комиссия за переводы' : true)
+        && (id == 'obligations-expense' ? data.system && data.flow == 'expense' && data.name == 'Обязательства' && data.limit == null : true)
+        && (id == 'obligations-income' ? data.system && data.flow == 'income' && data.name == 'Обязательства' && data.limit == null : true);
+    }
+    function validObligation(id, data) {
+      return data.keys().hasAll(['id', 'name', 'description', 'flow', 'amount', 'categoryId', 'active', 'createdAt'])
+        && data.keys().hasOnly(['id', 'name', 'description', 'flow', 'amount', 'categoryId', 'active', 'createdAt'])
+        && data.id == id && title(data.name) && data.flow in ['income', 'expense']
+        && data.description is string && data.description.size() <= 300
+        && amount(data.amount) && data.amount > 0
+        && data.categoryId == 'obligations-' + data.flow
+        && data.active is bool && data.createdAt is int;
+    }
+    function validEntry(uid, opId, entry) {
+      return entry.keys().hasAll(['id', 'accountId', 'accountName', 'kind', 'amount', 'categoryId', 'categoryName', 'obligationName'])
+        && entry.keys().hasOnly(['id', 'accountId', 'accountName', 'kind', 'amount', 'categoryId', 'categoryName', 'obligationName'])
+        && entry.id is string && entry.accountId is string && title(entry.accountName)
+        && entry.kind in ['income', 'expense', 'transfer-in', 'transfer-out', 'fee', 'repayment', 'debt-reduction', 'opening']
+        && amount(entry.amount) && (entry.kind == 'opening' || entry.amount > 0)
+        && entry.categoryName is string && entry.obligationName is string
+        && (entry.categoryId == null || (entry.categoryId is string
+          && getAfter(categoryPath(uid, entry.categoryId)).data.active == true
+          && getAfter(categoryPath(uid, entry.categoryId)).data.name == entry.categoryName))
+        && getAfter(accountPath(uid, entry.accountId)).data.active == true
+        && getAfter(accountPath(uid, entry.accountId)).data.name == entry.accountName
+        && getAfter(accountPath(uid, entry.accountId)).data.lastOperationId == opId;
+    }
+    function flowShape(uid, op) {
+      return op.entries.size() == 1 && op.fee == 0
+        && op.entries[0].kind == op.kind && op.entries[0].amount == op.amount
+        && op.entries[0].categoryId is string
+        && getAfter(categoryPath(uid, op.entries[0].categoryId)).data.flow == op.kind
+        && getAfter(accountPath(uid, op.entries[0].accountId)).data.kind != 'credit';
+    }
+    function transferShape(uid, op) {
+      let first = op.entries[0];
+      let last = op.entries[op.entries.size() - 1];
+      return op.obligationId == null && op.entries.size() == (op.fee > 0 ? 3 : 2)
+        && first.accountId != last.accountId && first.amount == op.amount && last.amount == op.amount
+        && first.categoryId == null && last.categoryId == null
+        && first.kind == (op.kind == 'repayment' ? 'repayment' : 'transfer-out')
+        && last.kind == (op.kind == 'repayment' ? 'debt-reduction' : 'transfer-in')
+        && get(accountPath(uid, first.accountId)).data.kind != 'credit'
+        && op.fee == get(accountPath(uid, first.accountId)).data.fee
+        && (op.kind != 'repayment' || get(accountPath(uid, first.accountId)).data.kind == 'bank')
+        && (op.kind == 'repayment' ? get(accountPath(uid, last.accountId)).data.kind == 'credit' : get(accountPath(uid, last.accountId)).data.kind != 'credit')
+        && (op.fee == 0 || (op.entries[1].kind == 'fee' && op.entries[1].amount == op.fee
+          && op.entries[1].accountId == first.accountId && op.entries[1].categoryId == 'transfer-fees'));
+    }
+    function obligationPosted(uid, op) {
+      let obligation = get(/databases/$(database)/documents/users/$(uid)/obligations/$(op.obligationId)).data;
+      let completion = getAfter(/databases/$(database)/documents/users/$(uid)/completions/$(op.obligationId + '_' + monthOf(op.date))).data;
+      return obligation.active && obligation.flow == op.kind
+        && op.entries[0].categoryId == obligation.categoryId
+        && op.entries[0].obligationName == obligation.name
+        && completion.operationId == op.id;
+    }
+    function validOperation(uid, id, data) {
+      return data.keys().hasAll(['id', 'kind', 'date', 'createdAt', 'comment', 'amount', 'fee', 'obligationId', 'entries'])
+        && data.keys().hasOnly(['id', 'kind', 'date', 'createdAt', 'comment', 'amount', 'fee', 'obligationId', 'entries'])
+        && data.id == id && data.kind in ['income', 'expense', 'transfer', 'repayment', 'opening']
+        && data.date is string && data.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && data.createdAt is int && data.comment is string && data.comment.size() <= 300
+        && amount(data.amount) && amount(data.fee) && (data.kind == 'opening' || data.amount > 0)
+        && data.entries is list && data.entries.size() >= 1 && data.entries.size() <= 3
+        && validEntry(uid, id, data.entries[0])
+        && (data.entries.size() < 2 || validEntry(uid, id, data.entries[1]))
+        && (data.entries.size() < 3 || validEntry(uid, id, data.entries[2]))
+        && (data.kind == 'opening'
+          ? data.entries.size() == 1 && data.entries[0].kind == 'opening' && data.entries[0].amount == data.amount && data.fee == 0 && data.obligationId == null && !exists(accountPath(uid, data.entries[0].accountId))
+          : data.kind in ['income', 'expense'] ? flowShape(uid, data) : transferShape(uid, data))
+        && (data.obligationId == null
+          ? !(data.entries[0].categoryId in ['obligations-income', 'obligations-expense'])
+          : data.obligationId is string && obligationPosted(uid, data));
+    }
+
+    match /users/{uid} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly(['schemaVersion', 'createdAt'])
+        && request.resource.data.schemaVersion == 1 && request.resource.data.createdAt is int;
+      allow update, delete: if false;
+
+      match /accounts/{id} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && validAccount(uid, id, request.resource.data)
+          && request.resource.data.active && request.resource.data.balance == request.resource.data.openingBalance
+          && request.resource.data.lastOperationId == 'opening-' + id
+          && getAfter(operationPath(uid, 'opening-' + id)).data.kind == 'opening'
+          && getAfter(operationPath(uid, 'opening-' + id)).data.entries[0].accountId == id
+          && getAfter(operationPath(uid, 'opening-' + id)).data.amount == request.resource.data.balance;
+        allow update: if owner(uid) && resource.data.active && validAccount(uid, id, request.resource.data)
+          && request.resource.data.kind == resource.data.kind
+          && request.resource.data.openingBalance == resource.data.openingBalance
+          && request.resource.data.createdAt == resource.data.createdAt
+          && (resource.data.kind != 'credit' || request.resource.data.name == resource.data.name)
+          && (request.resource.data.active || (request.resource.data.balance == 0 && request.resource.data.linkedCreditIds.size() == 0))
+          && ((request.resource.data.balance == resource.data.balance && request.resource.data.lastOperationId == resource.data.lastOperationId)
+            || postedBalance(uid, id, request.resource.data, resource.data));
+        allow delete: if false;
+      }
+      match /categories/{id} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && validCategory(id, request.resource.data) && request.resource.data.active;
+        allow update: if owner(uid) && resource.data.active && validCategory(id, request.resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'limit', 'active'])
+          && (!resource.data.system || (request.resource.data.active && request.resource.data.name == resource.data.name));
+        allow delete: if false;
+      }
+      match /obligations/{id} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && validObligation(id, request.resource.data) && request.resource.data.active;
+        allow update: if owner(uid) && resource.data.active && validObligation(id, request.resource.data)
+          && request.resource.data.flow == resource.data.flow && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if false;
+      }
+      match /operations/{id} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && validOperation(uid, id, request.resource.data);
+        allow update, delete: if false;
+      }
+      match /completions/{id} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && request.resource.data.keys().hasAll(['id', 'obligationId', 'month', 'operationId'])
+          && request.resource.data.keys().hasOnly(['id', 'obligationId', 'month', 'operationId'])
+          && request.resource.data.id == id
+          && request.resource.data.obligationId is string && request.resource.data.month is string
+          && request.resource.data.month.matches('[0-9]{4}-[0-9]{2}')
+          && id == request.resource.data.obligationId + '_' + request.resource.data.month
+          && getAfter(operationPath(uid, request.resource.data.operationId)).data.obligationId == request.resource.data.obligationId
+          && monthOf(getAfter(operationPath(uid, request.resource.data.operationId)).data.date) == request.resource.data.month;
+        allow update, delete: if false;
+      }
+      match /settings/{id} {
+        allow read: if owner(uid);
+        allow create, update: if owner(uid) && id == 'main'
+          && request.resource.data.keys().hasAll(['defaultAccountId', 'nextCreditNumber'])
+          && request.resource.data.keys().hasOnly(['defaultAccountId', 'nextCreditNumber'])
+          && request.resource.data.nextCreditNumber is int && request.resource.data.nextCreditNumber >= 1
+          && (request.resource.data.defaultAccountId == null || (request.resource.data.defaultAccountId is string
+            && getAfter(accountPath(uid, request.resource.data.defaultAccountId)).data.active
+            && getAfter(accountPath(uid, request.resource.data.defaultAccountId)).data.kind != 'credit'));
+        allow delete: if false;
+      }
+    }
+  }
+}

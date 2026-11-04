@@ -1,0 +1,2 @@
+-keepattributes Signature,InnerClasses,EnclosingMethod
+-dontwarn com.gemalto.jp2.JP2Decoder
