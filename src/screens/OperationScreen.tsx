@@ -30,7 +30,7 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
   const [obligationId, setObligationId] = useState<string | null>(initial?.obligationId ?? null);
   const [accountId, setAccountId] = useState<string | null>(initial?.accountId ?? credit?.paymentAccountId ?? settings.defaultAccountId);
   const [targetId, setTargetId] = useState<string | null>(initial?.targetId ?? null);
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(initial?.date ?? today);
   const [comment, setComment] = useState(initialObligation?.description ?? '');
   const action = useAction();
   const source = accounts.find(account => account.id === accountId && account.active);
@@ -70,40 +70,40 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
   });
 
   return <SafeAreaView style={ui.fill} edges={['top', 'bottom']}>
-    <Appbar style={ui.header}><Appbar.Action icon="close" color={colors.primary} disabled={action.busy} onPress={() => navigation.goBack()} accessibilityLabel="Закрыть"/><Appbar.Content title={initial?.kind === 'repayment' ? 'Погашение кредита' : flow === 'income' ? 'Пополнение' : 'Расход'} titleStyle={ui.headerTitle}/></Appbar>
+    <Appbar style={[ui.header, styles.header]}><Appbar.Action rippleColor="transparent" icon="close" color={colors.primary} disabled={action.busy} onPress={() => navigation.goBack()} accessibilityLabel="Закрыть"/><Appbar.Content title={initial?.kind === 'repayment' ? 'Погашение кредита' : flow === 'income' ? 'Пополнение' : 'Расход'} titleStyle={[ui.headerTitle, styles.headerTitle]}/></Appbar>
     <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
       <Text style={styles.expression} accessibilityLiveRegion="polite">{expression || '0,00'}<Text style={styles.currency}> ₸</Text></Text>
       {initial?.kind !== 'repayment' && <View style={ui.wrap}>
-        <Chip selected={mode === 'manual'} showSelectedCheck={false} disabled={action.busy} style={[ui.chip, mode === 'manual' && ui.chipSelected]} onPress={() => { setMode('manual'); action.clearError(); }}>{flow === 'income' ? 'Ручное пополнение' : 'Ручной расход'}</Chip>
-        <Chip selected={mode === 'transfer'} showSelectedCheck={false} disabled={action.busy} style={[ui.chip, mode === 'transfer' && ui.chipSelected]} onPress={() => { setMode('transfer'); action.clearError(); }}>Между своими счетами</Chip>
+        <Chip textStyle={styles.chipText} selected={mode === 'manual'} showSelectedCheck={false} disabled={action.busy} style={[ui.chip, mode === 'manual' && ui.chipSelected]} onPress={() => { setMode('manual'); action.clearError(); }}>{flow === 'income' ? 'Ручное пополнение' : 'Ручной расход'}</Chip>
+        <Chip textStyle={styles.chipText} selected={mode === 'transfer'} showSelectedCheck={false} disabled={action.busy} style={[ui.chip, mode === 'transfer' && ui.chipSelected]} onPress={() => { setMode('transfer'); action.clearError(); }}>Между своими счетами</Chip>
       </View>}
       {mode === 'manual' ? <>
         <Text style={ui.muted}>Категория</Text>
-        <View style={styles.chips}>{flowCategories.map(category => <Chip key={category.id} disabled={action.busy} selected={category.id === categoryId} showSelectedCheck={false} style={[ui.chip, category.id === categoryId && {backgroundColor: colors.primary}]} textStyle={{color: category.id === categoryId ? '#FFFFFF' : colors.secondary}} onPress={() => { setCategoryId(category.id); setObligationId(null); action.clearError(); }}>{category.name}</Chip>)}</View>
+        <View style={styles.chips}>{flowCategories.map(category => <Chip key={category.id} disabled={action.busy} selected={category.id === categoryId} showSelectedCheck={false} style={[ui.chip, category.id === categoryId && {backgroundColor: colors.primary}]} textStyle={[styles.chipText, {color: category.id === categoryId ? '#FFFFFF' : colors.secondary}]} onPress={() => { setCategoryId(category.id); setObligationId(null); action.clearError(); }}>{category.name}</Chip>)}</View>
         {categoryId === obligationCategory(flow) && <>
           <Text style={ui.muted}>Обязательство · {date.slice(0, 7)}</Text>
           <View style={ui.wrap}>{choices.map(item => {
             const done = completions.some(completion => completion.obligationId === item.id && completion.month === date.slice(0, 7));
-            return <Chip key={item.id} disabled={done || action.busy} selected={item.id === obligationId} icon={done ? 'check' : undefined} style={[ui.chip, item.id === obligationId && ui.chipSelected]} onPress={() => { setObligationId(item.id); setExpression(moneyInput(item.amount)); setComment(item.description); action.clearError(); }}>{item.name}{done ? ' · выполнено' : ''}</Chip>;
+            return <Chip textStyle={styles.chipText} key={item.id} disabled={done || action.busy} selected={item.id === obligationId} icon={done ? 'check' : undefined} style={[ui.chip, item.id === obligationId && ui.chipSelected]} onPress={() => { setObligationId(item.id); setExpression(moneyInput(item.amount)); setComment(item.description); action.clearError(); }}>{item.name}{done ? ' · выполнено' : ''}</Chip>;
           })}</View>
-          {!choices.length && <Button onPress={() => navigation.navigate('Obligations')}>Создать обязательство</Button>}
+          {!choices.length && <Button contentStyle={styles.buttonContent} labelStyle={styles.buttonLabel} onPress={() => navigation.navigate('Obligations')}>Создать обязательство</Button>}
         </>}
       </> : <>
         <Text style={ui.muted}>Откуда списать</Text>
-        <AccountPicker accounts={sourceAccounts} value={accountId} onChange={setAccountId} disabled={action.busy}/>
+        <AccountPicker contentStyle={styles.buttonContent} labelStyle={styles.buttonLabel} accounts={sourceAccounts} value={accountId} onChange={setAccountId} disabled={action.busy}/>
         <Text style={ui.muted}>Куда зачислить</Text>
-        <AccountPicker accounts={activeAccounts.filter(account => account.id !== accountId && (initial?.kind !== 'repayment' || account.kind === 'credit'))} value={targetId} onChange={setTargetId} label="Счёт или кредит" disabled={action.busy}/>
-        <Text style={ui.muted}>Комиссия: {money(source?.fee ?? 0)}. Списывается дополнительно со счёта отправителя.</Text>
-        {target?.kind === 'credit' && <Text style={ui.muted}>Остаток долга: {money(target.balance)}. Сумма платежа уменьшит долг.</Text>}
+        <AccountPicker contentStyle={styles.buttonContent} labelStyle={styles.buttonLabel} accounts={activeAccounts.filter(account => account.id !== accountId && (initial?.kind !== 'repayment' || account.kind === 'credit'))} value={targetId} onChange={setTargetId} label="Счёт или кредит" disabled={action.busy}/>
+        <Text style={ui.muted}>Комиссия: <Text style={ui.money}>{money(source?.fee ?? 0)}</Text>. Списывается дополнительно со счёта отправителя.</Text>
+        {target?.kind === 'credit' && <Text style={ui.muted}>Остаток долга: <Text style={ui.money}>{money(target.balance)}</Text>. Сумма платежа уменьшит долг.</Text>}
       </>}
-      <TextInput mode="flat" placeholder="Комментарий" accessibilityLabel="Комментарий к операции" value={comment} onChangeText={setComment} maxLength={300} disabled={action.busy} style={ui.field}/>
+      <TextInput mode="flat" dense={false} placeholder="Комментарий" accessibilityLabel="Комментарий к операции" value={comment} onChangeText={setComment} maxLength={300} disabled={action.busy} style={[ui.field, styles.commentField]}/>
     </ScrollView>
     <View style={styles.keyboard}>
       <ErrorNotice text={action.error}/>
       {keypad.map((row, index) => <View style={styles.keyRow} key={index}>
         {row.map(value => <Button key={value} mode="contained" buttonColor={colors.surface} textColor={colors.secondary} disabled={action.busy} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={() => key(value)} onLongPress={value === '⌫' ? () => setExpression('') : undefined} accessibilityLabel={value === '⌫' ? 'Удалить цифру; удерживайте, чтобы очистить' : value}>{value}</Button>)}
         {index === 1 && <Button mode="contained" disabled={action.busy} buttonColor={colors.track} textColor={colors.text} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.sideText} onPress={() => chooseDate(date, setDate, new Date())}>{shortDate(date)}</Button>}
-        {index === 2 && <View style={[styles.key, styles.accountKey]}><AccountPicker accounts={sourceAccounts} value={accountId} onChange={setAccountId} label="Счёт" compact disabled={action.busy}/></View>}
+        {index === 2 && <View style={[styles.key, styles.accountKey]}><AccountPicker accounts={sourceAccounts} value={accountId} onChange={setAccountId} label="Счёт" compact contentStyle={styles.keyContent} labelStyle={styles.sideText} disabled={action.busy}/></View>}
         {index === 3 && <Button mode="contained" buttonColor={colors.surface} textColor={colors.primary} disabled={action.busy} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={() => action.run(async () => setExpression(moneyInput(calculate(expression))))}>=</Button>}
         {index === 4 && <Button mode="contained" disabled={action.busy} loading={action.busy} buttonColor={colors.primary} style={styles.key} contentStyle={styles.keyContent} labelStyle={styles.keyText} onPress={save} accessibilityLabel="Сохранить операцию">✓</Button>}
       </View>)}
@@ -112,15 +112,21 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
 }
 
 const styles = StyleSheet.create({
+  header: {height: 64, paddingRight: 10},
+  headerTitle: {fontSize: 25, lineHeight: 32, fontWeight: '700'},
   form: {padding: 16, gap: 20, paddingBottom: 20},
-  expression: {fontSize: 44, color: colors.text, fontWeight: '700', textAlign: 'center', paddingVertical: 22, fontVariant: ['tabular-nums']},
-  currency: {fontSize: 24, color: colors.muted},
+  commentField: {fontSize: 16, lineHeight: 24},
+  chipText: {fontSize: 14, fontWeight: '600', marginVertical: 10},
+  buttonContent: {minHeight: 46},
+  buttonLabel: {fontSize: 14, fontWeight: '700'},
+  expression: {fontSize: 44, lineHeight: 54, color: colors.text, fontWeight: '700', textAlign: 'center', paddingVertical: 22, fontVariant: ['tabular-nums']},
+  currency: {fontSize: 24, lineHeight: 30, color: colors.muted},
   chips: {flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8},
   keyboard: {padding: 8, gap: 6, backgroundColor: colors.background},
   keyRow: {flexDirection: 'row', gap: 6},
   key: {flex: 1, borderRadius: 15, minWidth: 0, elevation: 0, shadowOpacity: 0},
   keyContent: {height: 48, minHeight: 48},
   keyText: {fontSize: 25, lineHeight: 30, marginVertical: 6, marginHorizontal: 0, fontWeight: '600'},
-  sideText: {fontSize: 11, marginHorizontal: 0},
+  sideText: {fontSize: 11, marginHorizontal: 0, fontWeight: '700'},
   accountKey: {justifyContent: 'center', backgroundColor: colors.surface},
 });

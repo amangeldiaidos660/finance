@@ -2,6 +2,7 @@ import React from 'react';
 import {View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {DefaultTheme, NavigationContainer} from '@react-navigation/native';
+import {PlatformPressable} from '@react-navigation/elements';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {Icon, Text} from 'react-native-paper';
@@ -11,6 +12,7 @@ import {useFinance} from '../data/FinanceProvider';
 import {logout} from '../data/auth';
 import {useAction} from '../data/useAction';
 import {AppHeader, ErrorNotice, Loading} from '../components/common';
+import {SummaryScreen} from '../screens/SummaryScreen';
 import {AccountsScreen} from '../screens/AccountsScreen';
 import {AccountFormScreen} from '../screens/AccountFormScreen';
 import {ExpensesScreen, IncomeScreen} from '../screens/FlowScreen';
@@ -27,14 +29,15 @@ import {colors, ui} from '../theme/theme';
 
 const Bottom = createBottomTabNavigator<BottomTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const navigationTheme = {...DefaultTheme, colors: {...DefaultTheme.colors, primary: colors.primary, background: colors.background, card: colors.background, text: colors.text, border: colors.border}};
+const navigationTheme = {...DefaultTheme, fonts: {...DefaultTheme.fonts, medium: DefaultTheme.fonts.regular, bold: DefaultTheme.fonts.regular, heavy: DefaultTheme.fonts.regular}, colors: {...DefaultTheme.colors, primary: colors.primary, background: colors.background, card: colors.background, text: colors.text, border: colors.border}};
 
 function BottomTabs() {
   const insets = useSafeAreaInsets();
-  return <Bottom.Navigator initialRouteName="Accounts" screenOptions={{headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarStyle: [ui.tabBar, {height: 66 + insets.bottom, paddingBottom: Math.max(insets.bottom, 8)}], tabBarLabelStyle: {fontSize: 12, fontWeight: '600', marginBottom: 4}, tabBarHideOnKeyboard: true}}>
-    <Bottom.Screen name="Accounts" component={AccountsScreen} options={{title: 'Счета', tabBarIcon: ({size}) => <Icon source="wallet-outline" color={colors.primary} size={size}/>}}/>
-    <Bottom.Screen name="Expenses" component={ExpensesScreen} options={{title: 'Расходы', tabBarIcon: ({size}) => <Icon source="arrow-top-right" color={colors.primary} size={size}/>}}/>
-    <Bottom.Screen name="Income" component={IncomeScreen} options={{title: 'Доходы', tabBarIcon: ({size}) => <Icon source="arrow-bottom-left" color={colors.primary} size={size}/>}}/>
+  return <Bottom.Navigator initialRouteName="Summary" screenOptions={{headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarStyle: [ui.tabBar, {height: 52 + insets.bottom, paddingBottom: Math.max(insets.bottom, 4)}], tabBarLabelStyle: {fontSize: 14, fontWeight: '400', marginBottom: 2}, tabBarButton: props => <PlatformPressable {...props} pressColor="transparent" pressOpacity={1} android_ripple={{color: 'transparent'}} hoverEffect={{color: 'transparent', hoverOpacity: 0, activeOpacity: 0}}/>, tabBarHideOnKeyboard: true}}>
+    <Bottom.Screen name="Summary" component={SummaryScreen} options={{title: 'Сводка', tabBarIcon: ({color}) => <Icon source="text-box-outline" color={color} size={20}/>}}/>
+    <Bottom.Screen name="Accounts" component={AccountsScreen} options={{title: 'Счета', tabBarIcon: ({color}) => <Icon source="wallet-outline" color={color} size={20}/>}}/>
+    <Bottom.Screen name="Expenses" component={ExpensesScreen} options={{title: 'Расходы', tabBarIcon: ({color}) => <Icon source="arrow-top-right" color={color} size={20}/>}}/>
+    <Bottom.Screen name="Income" component={IncomeScreen} options={{title: 'Доходы', tabBarIcon: ({color}) => <Icon source="arrow-bottom-left" color={color} size={20}/>}}/>
   </Bottom.Navigator>;
 }
 
@@ -60,6 +63,6 @@ export function AppNavigation() {
         <Stack.Screen name="Settings" component={SettingsScreen} options={{title: 'Настройки'}}/>
       </Stack.Navigator>
     </NavigationContainer>
-    {cached && <View style={{paddingHorizontal: 12, paddingVertical: 5, backgroundColor: colors.pale}}><Text style={{fontSize: 11, color: colors.secondary}}>Показаны сохранённые данные. Для записи операций нужен интернет.</Text></View>}
+    {cached && <View style={{paddingHorizontal: 12, paddingVertical: 5, backgroundColor: colors.pale}}><Text style={{fontSize: 14, color: colors.secondary}}>Показаны сохранённые данные. Для записи операций нужен интернет.</Text></View>}
   </View>;
 }

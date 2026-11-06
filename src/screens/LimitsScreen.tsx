@@ -32,15 +32,15 @@ export function LimitsScreen({navigation}: NativeStackScreenProps<RootStackParam
       return <Card key={category.id}>
         <Text style={ui.heading}>{category.name}</Text>
         <View style={ui.between}>
-          <Text style={[ui.label, ui.grow, {color: limit === null || total > limit ? colors.red : colors.primary}]}>{limit === null ? 'Лимит не установлен' : `Лимит: ${money(limit)}`}</Text>
+          <Text style={[ui.label, ui.grow, {color: limit === null || total > limit ? colors.red : colors.primary}]}>{limit === null ? 'Лимит не установлен' : <>Лимит: <Text style={[ui.money, {color: total > limit ? colors.red : colors.primary}]}>{money(limit)}</Text></>}</Text>
           <Button mode="outlined" compact onPress={() => {
             if (auto) { navigation.navigate('Obligations'); }
             else { action.clearError(); setEditing(category); setAmount(category.limit === null ? '' : moneyInput(category.limit)); }
           }}>{auto ? 'Обязательства' : limit === null ? 'Установить' : 'Изменить'}</Button>
         </View>
         {auto && <Text style={ui.muted}>Рассчитан автоматически из сумм активных подкатегорий обязательств.</Text>}
-        <View style={ui.between}><Text style={ui.muted}>Прошлый месяц</Text><Text style={ui.label}>{money(flowTotal(operations, 'expense', previous, category.id))}</Text></View>
-        <View style={ui.between}><Text style={ui.muted}>Текущий месяц</Text><Text style={ui.label}>{money(total)}</Text></View>
+        <View style={ui.between}><Text style={ui.muted}>Прошлый месяц</Text><Text style={ui.money}>{money(flowTotal(operations, 'expense', previous, category.id))}</Text></View>
+        <View style={ui.between}><Text style={ui.muted}>Текущий месяц</Text><Text style={ui.money}>{money(total)}</Text></View>
       </Card>;
     })}
     <Sheet title={editing?.name ?? 'Лимит'} visible={!!editing} onClose={() => { if (!action.busy) { setEditing(null); } }}>
