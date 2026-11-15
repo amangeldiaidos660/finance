@@ -142,18 +142,29 @@ export async function setDefaultAccount(uid: string, id: string | null): Promise
   });
 }
 
-export async function saveCategory(uid: string, id: string, flow: Flow, name: string): Promise<void> {
+export async function saveCategory(uid: string, id: string, flow: Flow, name: string, parentId: string | null = null): Promise<void> {
   const title = nameValue(name);
   await runTransaction(database(), async transaction => {
     const ref = userDocument(uid, 'categories', id);
     const existing = (await transaction.get(ref)).data() as Category | undefined;
     if (existing?.system) { throw new Error('Название служебной категории изменять нельзя.'); }
     if (existing && !existing.active) { throw new Error('Категория удалена. Создайте новую.'); }
+    if (existing && existing.flow !== flow) { throw new Error('Тип категории менять нельзя.'); }
+    if (parentId === id) { throw new Error('Категория не может быть своей подкатегорией.'); }
+    if (parentId && existing?.childIds?.length) { throw new Error('Сначала перенесите или удалите подкатегории. Допустимы только два уровня.'); }
+    const previousId = existing?.parentId ?? null;
+    const parentRef = parentId ? userDocument(uid, 'categories', parentId) : null;
+    const parent = parentRef ? (await transaction.get(parentRef)).data() as Category | undefined : null;
+    if (parentId && (!parent?.active || parent.system || parent.parentId || parent.flow !== flow)) { throw new Error('Выберите активную самостоятельную категорию того же типа.'); }
+    const previousRef = previousId && previousId !== parentId ? userDocument(uid, 'categories', previousId) : null;
+    const previous = previousRef ? (await transaction.get(previousRef)).data() as Category | undefined : null;
     if (existing) {
-      transaction.update(ref, {name: title});
+      transaction.update(ref, {name: title, parentId});
     } else {
-      transaction.set(ref, {id, name: title, flow, active: true, system: false, limit: null, color: palette[Date.now() % palette.length], order: Date.now()});
+      transaction.set(ref, {id, name: title, flow, active: true, system: false, limit: null, color: palette[Date.now() % palette.length], order: Date.now(), parentId, childIds: []});
     }
+    if (previousRef && previous) { transaction.update(previousRef, {childIds: (previous.childIds ?? []).filter(child => child !== id)}); }
+    if (parentRef && parent && previousId !== parentId) { transaction.update(parentRef, {childIds: [...(parent.childIds ?? []), id]}); }
   });
 }
 
@@ -163,7 +174,11 @@ export async function archiveCategory(uid: string, id: string): Promise<void> {
     const category = (await transaction.get(ref)).data() as Category | undefined;
     if (!category?.active) { throw new Error('Категория уже удалена.'); }
     if (category.system) { throw new Error('Эта категория нужна для учёта обязательств или комиссий и не удаляется.'); }
+    if (category.childIds?.length) { throw new Error('Сначала перенесите или удалите подкатегории. Их история сохранится.'); }
+    const parentRef = category.parentId ? userDocument(uid, 'categories', category.parentId) : null;
+    const parent = parentRef ? (await transaction.get(parentRef)).data() as Category | undefined : null;
     transaction.update(ref, {active: false});
+    if (parentRef && parent) { transaction.update(parentRef, {childIds: (parent.childIds ?? []).filter(child => child !== id)}); }
   });
 }
 
@@ -215,6 +230,7 @@ export async function saveOperation(uid: string, input: OperationInput): Promise
     const targetRef = transfer && input.targetId ? userDocument(uid, 'accounts', input.targetId) : null;
     const target = targetRef ? activeAccount((await transaction.get(targetRef)).data()) : null;
     let category: Category | null = null;
+    let parentCategory: Category | null = null;
     let obligation: Obligation | null = null;
     const completionId = input.obligationId ? `${input.obligationId}_${input.date.slice(0, 7)}` : null;
     const completionRef = completionId ? userDocument(uid, 'completions', completionId) : null;
@@ -223,6 +239,10 @@ export async function saveOperation(uid: string, input: OperationInput): Promise
       category = (await transaction.get(userDocument(uid, 'categories', input.categoryId))).data() as Category;
       if (!category?.active || category.flow !== input.kind) { throw new Error('Категория недоступна для этой операции.'); }
       if (category.id === FEE_CATEGORY) { throw new Error('Комиссия записывается автоматически при переводе.'); }
+      if (category.parentId) {
+        parentCategory = (await transaction.get(userDocument(uid, 'categories', category.parentId))).data() as Category;
+        if (!parentCategory?.active || parentCategory.system || parentCategory.parentId || parentCategory.flow !== category.flow || !parentCategory.childIds?.includes(category.id)) { throw new Error('Родительская категория недоступна. Обновите список категорий.'); }
+      }
       if (category.id === obligationCategory(input.kind as Flow) && !input.obligationId) { throw new Error('Выберите обязательство в списке подкатегорий.'); }
       if (input.obligationId) {
         obligation = (await transaction.get(userDocument(uid, 'obligations', input.obligationId))).data() as Obligation;
@@ -249,6 +269,7 @@ export async function saveOperation(uid: string, input: OperationInput): Promise
       amount,
       categoryId: selectedCategory?.id ?? null,
       categoryName: selectedCategory?.name ?? '',
+      ...(selectedCategory ? {parentCategoryId: parentCategory?.id ?? null, parentCategoryName: parentCategory?.name ?? ''} : {}),
       obligationName: obligation?.name ?? '',
     });
     let targetBalance: number | null = null;

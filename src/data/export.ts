@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import {fetchAllOperations} from './repository';
 import {shortDate} from './dates';
 import type {Entry, Operation} from './types';
+import {categoryPathName} from './statistics';
 
 export type ExportFormat = 'pdf' | 'xlsx' | 'csv';
 const labels: Record<Entry['kind'], string> = {income: 'Доход', expense: 'Расход', 'transfer-in': 'Перевод: зачисление', 'transfer-out': 'Перевод: списание', fee: 'Комиссия за переводы', repayment: 'Погашение кредита', 'debt-reduction': 'Уменьшение долга', opening: 'Начальный остаток / долг'};
@@ -14,7 +15,7 @@ const htmlEntities: Record<string, string> = {'&': '&amp;', '<': '&lt;', '>': '&
 function rowsFor(operations: Operation[]): (string | number)[][] {
   return operations.flatMap(operation => operation.entries.map(entry => {
     const negative = ['expense', 'transfer-out', 'fee', 'repayment', 'debt-reduction'].includes(entry.kind);
-    return [shortDate(operation.date), labels[entry.kind], entry.accountName, entry.categoryName, entry.obligationName, entry.amount / 100, entry.amount / 100 * (negative ? -1 : 1), operation.comment, operation.id];
+    return [shortDate(operation.date), labels[entry.kind], entry.accountName, categoryPathName(entry), entry.obligationName, entry.amount / 100, entry.amount / 100 * (negative ? -1 : 1), operation.comment, operation.id];
   }));
 }
 

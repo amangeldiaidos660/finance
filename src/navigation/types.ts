@@ -1,4 +1,4 @@
-import type {DateRange, Flow} from '../data/types';
+import type {CategoryScope, DateRange, Flow} from '../data/types';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -9,7 +9,7 @@ export type RootStackParamList = {
   Limits: undefined;
   Obligations: undefined;
   Charts: {mode: 'distribution' | 'trend'};
-  History: {accountId?: string; categoryId?: string; flow?: Flow; range?: DateRange} | undefined;
+  History: {accountId?: string; categoryId?: string; categoryScope?: CategoryScope; flow?: Flow; range?: DateRange} | undefined;
   Settings: undefined;
 };
 

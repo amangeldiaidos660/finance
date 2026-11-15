@@ -38,6 +38,9 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
   const activeAccounts = accounts.filter(account => account.active);
   const sourceAccounts = activeAccounts.filter(account => target?.kind === 'credit' && mode === 'transfer' ? account.kind === 'bank' : account.kind !== 'credit');
   const flowCategories = categories.filter(category => category.active && category.flow === flow && category.id !== FEE_CATEGORY).sort((a, b) => a.order - b.order);
+  const selectedCategory = flowCategories.find(category => category.id === categoryId);
+  const rootCategoryId = selectedCategory?.parentId ?? categoryId;
+  const subcategories = flowCategories.filter(category => category.parentId === rootCategoryId);
   const choices = obligations.filter(item => item.active && item.flow === flow);
   const keypad = [['−', '+', '×', '÷'], ['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9'], ['.', '0', '⌫']];
 
@@ -79,7 +82,14 @@ export function OperationScreen({route, navigation}: NativeStackScreenProps<Root
       </View>}
       {mode === 'manual' ? <>
         <Text style={ui.muted}>Категория</Text>
-        <View style={styles.chips}>{flowCategories.map(category => <Chip key={category.id} disabled={action.busy} selected={category.id === categoryId} showSelectedCheck={false} style={[ui.chip, category.id === categoryId && {backgroundColor: colors.primary}]} textStyle={[styles.chipText, {color: category.id === categoryId ? '#FFFFFF' : colors.secondary}]} onPress={() => { setCategoryId(category.id); setObligationId(null); action.clearError(); }}>{category.name}</Chip>)}</View>
+        <View style={styles.chips}>{flowCategories.filter(category => !category.parentId).map(category => <Chip key={category.id} disabled={action.busy} selected={category.id === rootCategoryId} showSelectedCheck={false} style={[ui.chip, category.id === rootCategoryId && {backgroundColor: colors.primary}]} textStyle={[styles.chipText, {color: category.id === rootCategoryId ? '#FFFFFF' : colors.secondary}]} onPress={() => { setCategoryId(category.id); setObligationId(null); action.clearError(); }}>{category.name}</Chip>)}</View>
+        {!!subcategories.length && <>
+          <Text style={ui.muted}>Подкатегория</Text>
+          <View style={styles.chips}>
+            <Chip disabled={action.busy} selected={categoryId === rootCategoryId} onPress={() => { setCategoryId(rootCategoryId); action.clearError(); }}>Без подкатегории</Chip>
+            {subcategories.map(category => <Chip key={category.id} disabled={action.busy} selected={categoryId === category.id} onPress={() => { setCategoryId(category.id); setObligationId(null); action.clearError(); }}>{category.name}</Chip>)}
+          </View>
+        </>}
         {categoryId === obligationCategory(flow) && <>
           <Text style={ui.muted}>Обязательство · {date.slice(0, 7)}</Text>
           <View style={ui.wrap}>{choices.map(item => {

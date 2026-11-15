@@ -30,7 +30,8 @@ export function LimitsScreen({navigation}: NativeStackScreenProps<RootStackParam
       const total = flowTotal(operations, 'expense', current, category.id);
       const auto = category.id === obligationCategory('expense');
       return <Card key={category.id}>
-        <Text style={ui.heading}>{category.name}</Text>
+        <Text style={ui.heading}>{category.parentId ? `${categories.find(parent => parent.id === category.parentId)?.name ?? ''} → ` : ''}{category.name}</Text>
+        {!!category.childIds?.length && <Text style={ui.muted}>Расходы включают прямые записи и подкатегории по структуре на момент сохранения. Лимит родителя задаётся отдельно от лимитов подкатегорий.</Text>}
         <View style={ui.between}>
           <Text style={[ui.label, ui.grow, {color: limit === null || total > limit ? colors.red : colors.primary}]}>{limit === null ? 'Лимит не установлен' : <>Лимит: <Text style={[ui.money, {color: total > limit ? colors.red : colors.primary}]}>{money(limit)}</Text></>}</Text>
           <Button mode="outlined" compact onPress={() => {

@@ -15,5 +15,5 @@ export function initialCategories(): Category[] {
     result.push({id: obligationCategory(flow), name: 'Обязательства', flow, color: '#536EB5', limit: null, system: true, active: true, order: 90});
   }
   result.push({id: FEE_CATEGORY, name: 'Комиссия за переводы', flow: 'expense', color: '#9CA3AF', limit: null, system: true, active: true, order: 99});
-  return result;
+  return result.map(category => ({...category, parentId: null, childIds: []}));
 }

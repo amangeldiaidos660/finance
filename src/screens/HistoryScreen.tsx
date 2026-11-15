@@ -4,7 +4,7 @@ import {Text} from 'react-native-paper';
 import {Button, Chip} from '../components/controls';
 import {useFinance} from '../data/FinanceProvider';
 import {exportHistory, type ExportFormat} from '../data/export';
-import {inRange, isFlow} from '../data/statistics';
+import {inRange, isFlow, matchesCategory, matchesCategoryScope} from '../data/statistics';
 import {periodLabel} from '../data/dates';
 import type {Entry} from '../data/types';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -16,16 +16,18 @@ import {ui} from '../theme/theme';
 
 export function HistoryScreen({route}: NativeStackScreenProps<RootStackParamList, 'History'>) {
   const {operations, accounts, categories, user} = useFinance();
-  const {accountId, categoryId, flow, range} = route.params ?? {};
-  const scoped = Boolean(accountId || categoryId || flow || range);
-  const title = accountId ? accounts.find(account => account.id === accountId)?.name ?? 'История счёта' : categoryId ? categories.find(category => category.id === categoryId)?.name ?? 'История категории' : flow === 'income' ? 'Доходы' : flow === 'expense' ? 'Расходы' : '';
+  const {accountId, categoryId, categoryScope, flow, range} = route.params ?? {};
+  const [allPlacements, setAllPlacements] = useState(false);
+  const scoped = Boolean(accountId || categoryId || categoryScope || flow || range);
+  const title = categoryScope ? (categoryScope.parentId ? `${categoryScope.parentName} → ` : '') + categoryScope.name : accountId ? accounts.find(account => account.id === accountId)?.name ?? 'История счёта' : categoryId ? categories.find(category => category.id === categoryId)?.name ?? 'История категории' : flow === 'income' ? 'Доходы' : flow === 'expense' ? 'Расходы' : '';
   const [filter, setFilter] = useState<'all' | 'expense' | 'income' | 'transfer'>('all');
   const [count, setCount] = useState(40);
   const [open, setOpen] = useState(false);
   const action = useAction();
-  useEffect(() => { setFilter('all'); setCount(40); }, [accountId, categoryId, flow, range?.start, range?.end]);
+  useEffect(() => { setFilter('all'); setCount(40); setAllPlacements(false); }, [accountId, categoryId, categoryScope, flow, range?.start, range?.end]);
   const matchesEntry = (entry: Entry) => (!accountId || entry.accountId === accountId)
-    && (!categoryId || entry.categoryId === categoryId)
+    && (!categoryId || matchesCategory(entry, categoryId))
+    && (!categoryScope || (allPlacements ? matchesCategory(entry, categoryScope.id) : matchesCategoryScope(entry, categoryScope)))
     && (!flow || isFlow(entry, flow))
     && (filter === 'income' || filter === 'expense' ? isFlow(entry, filter) : true);
   const selected = operations.filter(operation => (!range || inRange(operation, range))
@@ -34,6 +36,8 @@ export function HistoryScreen({route}: NativeStackScreenProps<RootStackParamList
   const download = (format: ExportFormat) => action.run(async () => { await exportHistory(user!.uid, format); setOpen(false); });
   return <Page>
     {!!title && <Text style={ui.heading}>{title}</Text>}
+    {!!categoryScope && <Button onPress={() => { setAllPlacements(value => !value); setCount(40); }}>{allPlacements ? 'Только выбранная группа' : 'Вся история категории за период'}</Button>}
+    {allPlacements && <Text style={ui.muted}>Показаны все названия и положения этой категории за выбранный период. Каждая запись сохраняет свою исходную структуру.</Text>}
     <View style={ui.between}><Text style={[ui.muted, ui.grow]}>{range ? periodLabel(range) : 'За всё время'}</Text>{!scoped && <Button mode="outlined" icon="export-variant" onPress={() => { action.clearError(); setOpen(true); }}>Экспорт</Button>}</View>
     {!categoryId && !flow && <View style={ui.wrap}>{([{id: 'all', title: 'Все'}, {id: 'expense', title: 'Расходы'}, {id: 'income', title: 'Доходы'}, {id: 'transfer', title: 'Переводы'}] as const).map(item => <Chip key={item.id} selected={filter === item.id} showSelectedCheck={false} style={[ui.chip, filter === item.id && ui.chipSelected]} onPress={() => { setFilter(item.id); setCount(40); }}>{item.title}</Chip>)}</View>}
     <HistoryList operations={selected.slice(0, count)} entryFilter={matchesEntry}/>

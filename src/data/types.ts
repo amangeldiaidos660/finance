@@ -29,6 +29,8 @@ export interface Category {
   system: boolean;
   active: boolean;
   order: number;
+  parentId?: string | null;
+  childIds?: string[];
 }
 
 export interface Obligation {
@@ -57,7 +59,17 @@ export interface Entry {
   amount: number;
   categoryId: string | null;
   categoryName: string;
+  parentCategoryId?: string | null;
+  parentCategoryName?: string;
   obligationName: string;
+}
+
+export interface CategoryScope {
+  id: string;
+  name: string;
+  parentId: string | null;
+  parentName: string;
+  branch: boolean;
 }
 
 export interface Operation {

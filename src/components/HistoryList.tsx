@@ -7,6 +7,7 @@ import {shortDate} from '../data/dates';
 import {Card, EmptyState} from './common';
 import {colors, ui} from '../theme/theme';
 import {financeIcon} from '../theme/presentation';
+import {categoryPathName} from '../data/statistics';
 
 export const entryLabels: Record<Entry['kind'], string> = {
   income: 'Доход', expense: 'Расход', 'transfer-in': 'Перевод: зачисление', 'transfer-out': 'Перевод: списание',
@@ -20,7 +21,7 @@ export function HistoryList({operations, entryFilter, showDate = true}: {operati
   return <Card style={styles.card}>{visible.map(({operation, entry}, index) => {
     const incoming = entry.kind === 'income' || entry.kind === 'transfer-in';
     const negative = ['expense', 'transfer-out', 'fee', 'repayment', 'debt-reduction'].includes(entry.kind);
-    const title = entry.obligationName || entry.categoryName || entryLabels[entry.kind];
+    const title = entry.obligationName || categoryPathName(entry) || entryLabels[entry.kind];
     const fallback = entry.kind === 'opening' ? 'wallet-outline' : ['transfer-in', 'transfer-out'].includes(entry.kind) ? 'bank-transfer' : 'cash-multiple';
     return <React.Fragment key={operation.id + ':' + entry.id}>
       {index > 0 && <Divider style={ui.divider}/>}
